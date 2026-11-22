@@ -214,6 +214,16 @@ class Database:
             row = cur.fetchone()
             return dict(row) if row else None
 
+    def all_tenants(self) -> list[dict]:
+        with self._lock:
+            cur = self._conn.execute(
+                "SELECT t.*, "
+                "(SELECT COUNT(*) FROM posts p "
+                " WHERE p.channel_chat_id = t.tg_channel_id AND p.status = 'pending') "
+                "AS pending_count "
+                "FROM tenants t ORDER BY t.id")
+            return [dict(r) for r in cur.fetchall()]
+
     def tenants_of_user(self, tg_user_id: int) -> list[dict]:
         with self._lock:
             cur = self._conn.execute(

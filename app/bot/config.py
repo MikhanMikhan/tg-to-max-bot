@@ -14,6 +14,7 @@ class Config:
     default_delay_minutes: int
     tz: ZoneInfo
     db_path: str = "queue.db"
+    admin_user_id: int = 0  # TG user id оператора бота (команды /admin*)
 
     @property
     def max_enabled(self) -> bool:
@@ -29,4 +30,5 @@ def load_config(env_file: str = ".env") -> Config:
         default_delay_minutes=int(os.environ.get("DEFAULT_DELAY_MINUTES", "60")),
         tz=ZoneInfo(os.environ.get("TZ", "Europe/Moscow")),
         db_path=os.environ.get("DB_PATH", "queue.db"),
+        admin_user_id=int(os.environ.get("ADMIN_TG_USER_ID", "0")),
     )

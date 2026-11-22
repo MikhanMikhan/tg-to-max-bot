@@ -42,6 +42,9 @@ class TelegramSide:
         dp.message.register(self.on_start, CommandStart(), F.chat.type == "private")
         dp.message.register(self.on_status, Command("status"), F.chat.type == "private")
         dp.message.register(self.on_disconnect, Command("disconnect"), F.chat.type == "private")
+        dp.message.register(self.on_admin, Command("admin"), F.chat.type == "private")
+        dp.message.register(self.on_admin_disconnect, Command("admin_disconnect"),
+                            F.chat.type == "private")
         dp.message.register(self.on_forwarded_post, F.chat.type == "private",
                             F.forward_origin)
         dp.message.register(self.on_private_text, F.chat.type == "private", F.text)
@@ -108,6 +111,62 @@ class TelegramSide:
         await message.answer(
             f"Связка TG {tenant['tg_channel_id']} → MAX {tenant['max_channel_id']} "
             "отключена. Ожидавшие публикации дубли отменены.")
+
+    # --- команды оператора (ADMIN_TG_USER_ID) ---
+
+    def _is_admin(self, message: Message) -> bool:
+        return (self.config.admin_user_id
+                and message.from_user.id == self.config.admin_user_id)
+
+    async def on_admin(self, message: Message):
+        """Список всех связок — только для оператора бота."""
+        if not self._is_admin(message):
+            return
+        tenants = self.db.all_tenants()
+        if not tenants:
+            await message.answer("Связок пока нет.")
+            return
+        lines = ["Все связки:"]
+        for t in tenants:
+            state = "активна" if t["active"] else "отключена"
+            lines.append(
+                f"#{t['id']} владелец {t['tg_user_id']}: "
+                f"TG {t['tg_channel_id']} → MAX {t['max_channel_id']} "
+                f"(задержка {t['delay_minutes']} мин, {state}, "
+                f"ожидает дублей: {t['pending_count']})")
+        lines.append("Отключить: /admin_disconnect <id связки>")
+        await message.answer("\n".join(lines))
+
+    async def on_admin_disconnect(self, message: Message):
+        """Принудительное отключение связки оператором: /admin_disconnect <id>."""
+        if not self._is_admin(message):
+            return
+        arg = (message.text or "").partition(" ")[2].strip()
+        try:
+            tenant_id = int(arg)
+        except ValueError:
+            await message.answer("Аргумент — id связки из /admin, "
+                                 "например: /admin_disconnect 3")
+            return
+        tenant = self.db.get_tenant_by_id(tenant_id)
+        if not tenant:
+            await message.answer("Связки с таким id нет. Список: /admin")
+            return
+        self.db.set_tenant_active(tenant["id"], False)
+        for post in self.db.pending_posts_of_channel(tenant["tg_channel_id"]):
+            self.db.register_failure(post["id"], "тенант отключён оператором", None)
+        await message.answer(
+            f"Связка #{tenant_id} (владелец {tenant['tg_user_id']}, "
+            f"TG {tenant['tg_channel_id']} → MAX {tenant['max_channel_id']}) "
+            "отключена, ожидавшие дубли отменены.")
+        try:
+            await self.bot.send_message(
+                tenant["tg_user_id"],
+                f"Ваша связка TG {tenant['tg_channel_id']} → "
+                f"MAX {tenant['max_channel_id']} отключена оператором бота.")
+        except Exception as e:
+            log.warning("Не удалось уведомить владельца связки #%s: %s",
+                        tenant_id, e)
 
     # --- регистрация связки ---
 

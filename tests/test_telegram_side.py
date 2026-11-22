@@ -321,3 +321,60 @@ def test_dispatch_reply_with_time_reaches_author_reply(db, config):
     tomorrow = datetime.now(TZ).date() + timedelta(days=1)
     assert (publish_at.date(), publish_at.hour, publish_at.minute) == \
            (tomorrow, 15, 30)
+
+
+# --- команды оператора ---
+
+def admin_config(config):
+    config.admin_user_id = 900
+    return config
+
+
+def test_admin_lists_all_tenants(db, config):
+    side = make_side(db, admin_config(config))
+    db.add_tenant(111, -100123, "-1", 60, "Europe/Moscow")
+    db.add_tenant(222, -100456, "-2", 30, "Europe/Moscow")
+    db.add_post(-100123, 1, None, CONTENT, NOW)
+    m = msg(user_id=900)
+    run(side.on_admin(m))
+    text = m.answer.await_args.args[0]
+    assert "111" in text and "222" in text
+    assert "-100123" in text and "-100456" in text
+    assert "ожидает дублей: 1" in text
+
+
+def test_admin_commands_ignored_for_non_admin(db, config):
+    side = make_side(db, config)
+    db.add_tenant(111, -100123, "-1", 60, "Europe/Moscow")
+    m = msg(user_id=111)  # владелец связки, но не оператор
+    run(side.on_admin(m))
+    m.answer.assert_not_awaited()
+    m2 = msg(user_id=111, text="/admin_disconnect 1")
+    run(side.on_admin_disconnect(m2))
+    m2.answer.assert_not_awaited()
+    assert db.get_tenant_by_tg_channel(-100123)["active"] == 1
+
+
+def test_admin_commands_noop_without_admin_configured(db):
+    config = Config(telegram_bot_token="t", max_bot_token="m", max_channel_id="",
+                    default_delay_minutes=60, tz=TZ)  # admin_user_id = 0
+    side = make_side(db, config)
+    db.add_tenant(111, -100123, "-1", 60, "Europe/Moscow")
+    m = msg(user_id=111)
+    run(side.on_admin(m))
+    m.answer.assert_not_awaited()
+
+
+def test_admin_disconnect_deactivates_and_notifies(db, config):
+    side = make_side(db, admin_config(config))
+    tid = db.add_tenant(111, -100123, "-1", 60, "Europe/Moscow")
+    db.add_post(-100123, 1, None, CONTENT, NOW)
+    m = msg(user_id=900, text=f"/admin_disconnect {tid}")
+    run(side.on_admin_disconnect(m))
+    assert db.get_tenant_by_id(tid)["active"] == 0
+    post = db.pending_posts_of_channel(-100123)
+    assert post == []
+    # оператору — подтверждение, владельцу — уведомление
+    assert "отключена" in m.answer.await_args.args[0]
+    side.bot.send_message.assert_awaited_once()
+    assert side.bot.send_message.await_args.args[0] == 111
