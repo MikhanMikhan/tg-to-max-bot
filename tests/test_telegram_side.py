@@ -1,7 +1,7 @@
 """Хендлеры TelegramSide: регистрация связок, фильтрация постов по тенантам.
 Сеть замокана: Bot и MaxClient — AsyncMock, aiogram Dispatcher не нужен."""
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 from zoneinfo import ZoneInfo
@@ -166,7 +166,10 @@ def test_registration_without_max_client(db, config):
 def test_text_without_state_passes_through(db, config):
     side = make_side(db, config)
     m = msg(text="-72075083149532")
-    run(side.on_private_text(m))
+    from aiogram.dispatcher.event.bases import SkipHandler
+    # вне регистрации хендлер пропускает апдейт дальше по цепочке Dispatcher
+    with pytest.raises(SkipHandler):
+        run(side.on_private_text(m))
     m.answer.assert_not_awaited()
 
 
@@ -265,3 +268,56 @@ def test_author_reply_only_from_tenant_owner(db, config):
     m2 = msg(user_id=111, text="завтра 15:30", reply_to=notify)
     run(side.on_author_reply(m2))
     assert "Перенёс" in m2.answer.await_args.args[0]
+
+
+# --- маршрутизация через реальный Dispatcher ---
+
+from aiogram import Bot, Dispatcher
+from aiogram.client.session.base import BaseSession
+from aiogram.types import Chat, Message, Update, User
+
+
+class DummySession(BaseSession):
+    """Сессия без сети: отвечает на SendMessage минимально валидным Message."""
+
+    async def make_request(self, bot, method, timeout=None):
+        from aiogram.methods import SendMessage
+        assert isinstance(method, SendMessage), f"неожиданный вызов API: {method}"
+        return Message(message_id=999, date=datetime.now(),
+                       chat=Chat(id=int(method.chat_id), type="private"))
+
+    async def stream_content(self, *args, **kwargs):
+        raise NotImplementedError
+
+    async def close(self):
+        pass
+
+
+def tg_message(message_id=7, user_id=111, text=None, reply_to_id=None):
+    return Message(
+        message_id=message_id, date=datetime.now(),
+        chat=Chat(id=user_id, type="private"),
+        from_user=User(id=user_id, is_bot=False, first_name="A"),
+        text=text,
+        reply_to_message=(Message(message_id=reply_to_id, date=datetime.now(),
+                                  chat=Chat(id=user_id, type="private"))
+                          if reply_to_id else None),
+    )
+
+
+def test_dispatch_reply_with_time_reaches_author_reply(db, config):
+    """Реплай «завтра 15:30» на уведомление должен дойти до on_author_reply
+    через цепочку хендлеров Dispatcher (раньше его съедал on_private_text)."""
+    db.add_tenant(111, -100123, "-1", 60, "Europe/Moscow")
+    pid = db.add_post(-100123, 1, None, CONTENT, NOW)
+    db.set_notify_message_id(pid, 555)
+    bot = Bot(token="42:TEST", session=DummySession())
+    dp = Dispatcher()
+    TelegramSide(bot, dp, db, config, AsyncMock())
+    run(dp.feed_update(bot, Update(update_id=1,
+                                   message=tg_message(text="завтра 15:30",
+                                                      reply_to_id=555))))
+    publish_at = datetime.fromisoformat(db.get_post(pid)["publish_at"])
+    tomorrow = datetime.now(TZ).date() + timedelta(days=1)
+    assert (publish_at.date(), publish_at.hour, publish_at.minute) == \
+           (tomorrow, 15, 30)

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher, F
+from aiogram.dispatcher.event.bases import SkipHandler
 from aiogram.enums import ChatMemberStatus
 from aiogram.filters import Command, CommandStart
 from aiogram.types import Message
@@ -156,7 +157,9 @@ class TelegramSide:
         user_id = message.from_user.id
         tg_channel_id = self.db.get_registration_state(user_id)
         if tg_channel_id is None:
-            return  # не в процессе регистрации — дальше on_author_reply
+            # не в процессе регистрации — пропускаем апдейт дальше по цепочке
+            # (on_author_reply), иначе Dispatcher считает его обработанным здесь
+            raise SkipHandler
         m = _MAX_ID_RE.search(message.text.strip())
         if not m:
             await message.answer("Не понял id MAX-канала. Пришлите число вида "
