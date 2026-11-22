@@ -1,0 +1,16 @@
+[Unit]
+Description=Social Network Factory — TG -> MAX mirror bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/snf
+Environment=PYTHONIOENCODING=utf-8
+ExecStart=/opt/snf/.venv/bin/python -m app.main
+Restart=on-failure
+RestartSec=10
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target

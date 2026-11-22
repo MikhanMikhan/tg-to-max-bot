@@ -1,0 +1,20 @@
+# секреты и состояние
+.env
+queue.db
+queue.db-*
+backfill.session*
+backfill_state.json
+
+# приватные локальные файлы (контент канала, задачи планировщика)
+backfill_skip.json
+skip_candidates.json
+*_task.bat
+SNF-*.xml
+
+# логи и служебное
+*.log
+*.pid
+.pytest_cache/
+__pycache__/
+*.pyc
+.venv/
