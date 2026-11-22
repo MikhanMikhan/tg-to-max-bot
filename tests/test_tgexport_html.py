@@ -1,7 +1,7 @@
 """Тесты парсера HTML-экспорта Telegram Desktop (app/tgexport_html.py)."""
 import pytest
 
-from app.tgexport_html import parse_posts
+from app.backfill.tgexport_html import parse_posts
 
 
 def _write_export(tmp_path, body: str):

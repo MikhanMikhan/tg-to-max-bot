@@ -3,8 +3,8 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.backoff import next_retry_at
-from app.db import Database
+from app.bot.backoff import next_retry_at
+from app.bot.db import Database
 
 TZ = ZoneInfo("Europe/Moscow")
 NOW = datetime(2026, 8, 4, 14, 0, tzinfo=TZ)

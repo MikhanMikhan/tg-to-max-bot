@@ -9,9 +9,9 @@ from zoneinfo import ZoneInfo
 import pytest
 from aiogram.enums import ChatMemberStatus
 
-from app.config import Config
-from app.db import Database
-from app.telegram_side import TelegramSide
+from app.bot.config import Config
+from app.bot.db import Database
+from app.bot.telegram_side import TelegramSide
 
 TZ = ZoneInfo("Europe/Moscow")
 NOW = datetime(2026, 8, 4, 14, 0, tzinfo=TZ)
@@ -48,7 +48,7 @@ def make_side(db, config, bot=None, max_client=None):
     side.config = config
     side.max_client = max_client
     side._bot_id = 999
-    from app.albums import MediaGroupCollector
+    from app.bot.albums import MediaGroupCollector
     side.collector = MediaGroupCollector(delay=2.0)
     return side
 

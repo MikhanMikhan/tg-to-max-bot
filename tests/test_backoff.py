@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app.backoff import MAX_ATTEMPTS, next_retry_at
+from app.bot.backoff import MAX_ATTEMPTS, next_retry_at
 
 NOW = datetime(2026, 8, 4, 14, 0, tzinfo=ZoneInfo("Europe/Moscow"))
 

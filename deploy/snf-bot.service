@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=simple
 WorkingDirectory=/opt/snf
 Environment=PYTHONIOENCODING=utf-8
-ExecStart=/opt/snf/.venv/bin/python -m app.main
+ExecStart=/opt/snf/.venv/bin/python -m app.bot
 Restart=on-failure
 RestartSec=10
 MemoryMax=256M

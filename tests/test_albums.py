@@ -1,7 +1,7 @@
 import asyncio
 from types import SimpleNamespace
 
-from app.albums import MediaGroupCollector, sort_album
+from app.bot.albums import MediaGroupCollector, sort_album
 
 
 def msg(message_id):

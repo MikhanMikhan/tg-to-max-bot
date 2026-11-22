@@ -13,9 +13,9 @@ from aiogram.types import Message
 
 from .albums import MediaGroupCollector, sort_album
 from .config import Config
-from .content import snapshot_from_album, snapshot_from_message
+from ..core.content import snapshot_from_album, snapshot_from_message
 from .db import Database
-from .max_client import MaxClient
+from ..core.max_client import MaxClient
 from .timeparse import parse_time
 
 log = logging.getLogger(__name__)

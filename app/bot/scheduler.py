@@ -8,9 +8,9 @@ from aiogram import Bot
 
 from .backoff import next_retry_at
 from .config import Config
-from .content import render_max_markdown
+from ..core.content import render_max_markdown
 from .db import Database
-from .max_client import MaxClient
+from ..core.max_client import MaxClient
 
 log = logging.getLogger(__name__)
 

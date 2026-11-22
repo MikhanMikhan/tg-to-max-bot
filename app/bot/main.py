@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher
 
 from .config import load_config
 from .db import Database
-from .max_client import MaxClient
+from ..core.max_client import MaxClient
 from .scheduler import Scheduler
 from .telegram_side import TelegramSide
 from .tg_session import TelegramSession

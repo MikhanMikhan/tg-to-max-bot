@@ -108,9 +108,9 @@ cp .env.example .env
 
 ```bash
 # Windows (Git Bash):
-.venv/Scripts/python.exe -m app.main
+.venv/Scripts/python.exe -m app.bot
 # Linux/macOS:
-.venv/bin/python -m app.main
+.venv/bin/python -m app.bot
 ```
 
 Long-polling Telegram не требует публичного IP; запросы к MAX — исходящие.
@@ -158,21 +158,27 @@ Bot API историю канала не отдаёт, поэтому архив
 
 ## Структура
 
+Проект разделён на два модуля с общим ядром:
+
 ```
 app/
-  config.py         # конфиг из .env
-  db.py             # очередь в SQLite (posts, tenants, registration_state), дедупликация
-  timeparse.py      # парсинг «завтра 15:30» и т.п.
-  backoff.py        # интервалы ретраев: 5 мин → 30 мин, max 3 попытки
-  albums.py         # сборка media_group в один дубль (задержка 2 с)
-  content.py        # слепок поста + маппинг TG entities → MAX markdown
-  tgexport_html.py  # парсер HTML-экспорта Telegram Desktop (messages.html)
-  backfill.py       # перенос архива канала в MAX (JSON или HTML экспорт)
-  telegram_side.py  # хендлеры aiogram: посты, правки, диалог с автором
-  max_client.py     # MAX Bot API на httpx: POST /uploads, POST /messages
-  scheduler.py      # asyncio-цикл (тик 30 с): публикация, ретраи, уведомления
-  main.py           # точка входа
-tests/              # pytest, без сети
+  core/               # общий код обоих модулей
+    content.py        # слепок поста + маппинг TG entities → MAX markdown
+    max_client.py     # MAX Bot API на httpx: POST /uploads, POST /messages
+  bot/                # модуль 1: бот дублирования (python -m app.bot)
+    config.py         # конфиг из .env
+    db.py             # очередь в SQLite (posts, tenants, registration_state), дедупликация
+    timeparse.py      # парсинг «завтра 15:30» и т.п.
+    backoff.py        # интервалы ретраев: 5 мин → 30 мин, max 3 попытки
+    albums.py         # сборка media_group в один дубль (задержка 2 с)
+    telegram_side.py  # хендлеры aiogram: посты, правки, диалог с автором
+    tg_session.py     # aiohttp-сессия aiogram (прокси/SSL)
+    scheduler.py      # asyncio-цикл (тик 30 с): публикация, ретраи, уведомления
+    main.py           # точка входа
+  backfill/           # модуль 2: перенос архива канала (python -m app.backfill)
+    tgexport_html.py  # парсер HTML-экспорта Telegram Desktop (messages.html)
+    cli.py            # перенос архива канала в MAX (JSON или HTML экспорт)
+tests/                # pytest, без сети
 ```
 
 ## Известные ограничения

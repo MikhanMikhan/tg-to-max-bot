@@ -6,9 +6,9 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from app.config import Config
-from app.db import Database
-from app.scheduler import Scheduler
+from app.bot.config import Config
+from app.bot.db import Database
+from app.bot.scheduler import Scheduler
 
 TZ = ZoneInfo("Europe/Moscow")
 NOW = datetime(2026, 8, 4, 14, 0, tzinfo=TZ)

@@ -1,4 +1,4 @@
-from app.content import render_max_markdown
+from app.core.content import render_max_markdown
 
 
 def ent(type_, offset, length, url=None):

@@ -33,8 +33,8 @@ except ImportError:
 
 from dotenv import load_dotenv
 
-from .content import render_max_markdown
-from .max_client import MaxClient
+from ..core.content import render_max_markdown
+from ..core.max_client import MaxClient
 from .tgexport_html import parse_posts
 
 log = logging.getLogger(__name__)

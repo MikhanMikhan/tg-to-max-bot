@@ -1,7 +1,7 @@
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from app.timeparse import parse_time
+from app.bot.timeparse import parse_time
 
 TZ = ZoneInfo("Europe/Moscow")
 NOW = datetime(2026, 8, 4, 14, 0, tzinfo=TZ)  # 14:00
